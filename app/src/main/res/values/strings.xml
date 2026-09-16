@@ -20,4 +20,17 @@
     <string name="start_info_body">Explora una propuesta que utiliza inteligencia artificial para generar reportes que apoyen la creación de Áreas Marinas Protegidas.</string>
     <string name="start_demo_pending">La experiencia estará disponible próximamente.</string>
     <string name="start_close">Cerrar</string>
+    <string name="zone_window_description">Vista del océano desde una ventana</string>
+    <string name="zone_title">BAJA\nCALIFORNIA</string>
+    <string name="zone_coordinates">MÉXICO • 32°43′07″  28°00′00</string>
+    <string name="zone_swipe">DESLIZAR</string>
+    <string name="zone_select">Seleccionar</string>
+    <string name="zone_pilot_title">Desarrollo de Piloto</string>
+    <string name="zone_now">ACTUALIDAD</string>
+    <string name="zone_pilot_body">Junto con la consultora Fundes y Fundación Coppel, estamos desarrollando el primer piloto para las comunidades pesqueras de Baja California.</string>
+    <string name="zone_dialogue_title">Mesas de Diálogo</string>
+    <string name="zone_date">JULIO, 2025</string>
+    <string name="zone_dialogue_body">Nos acercamos a las comunidades costeras para entender sus necesidades y conocer los retos que enfrentan.</string>
+    <string name="zone_selected_title">Baja California</string>
+    <string name="zone_selected_body">Esta zona quedó seleccionada para continuar la experiencia.</string>
 </resources>

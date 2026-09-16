@@ -49,14 +49,14 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             MiPrimeraAppTheme {
-                var ready by rememberSaveable { mutableStateOf(false) }
-                LaunchedEffect(ready) {
-                    val bars = if (ready) SystemBarStyle.light(android.graphics.Color.TRANSPARENT, 0xFF282727.toInt())
+                var appStage by rememberSaveable { mutableIntStateOf(0) }
+                LaunchedEffect(appStage) {
+                    val bars = if (appStage > 0) SystemBarStyle.light(android.graphics.Color.TRANSPARENT, 0xFF282727.toInt())
                         else SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
                     enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
                 }
-                Crossfade(targetState = ready, animationSpec = tween(450), label = "Loader to start") { started ->
-                    if (started) StartScreen() else LoaderScreen(onFinished = { ready = true })
+                Crossfade(targetState = appStage > 0, animationSpec = tween(450), label = "App flow") { started ->
+                    if (started) ExperienceFlow() else LoaderScreen(onFinished = { appStage = 1 })
                 }
             }
         }

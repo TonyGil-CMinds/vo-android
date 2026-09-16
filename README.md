@@ -168,5 +168,13 @@ Para probar tu icono sin Android Studio:
 Para un icono adaptativo final, prepara símbolo transparente y fondo por separado: lienzo de 108 x 108 dp, símbolo importante dentro de la zona segura central de 66 x 66 dp, sin esquinas redondeadas incorporadas. Un SVG debe convertirse a VectorDrawable. Conserva una versión clásica para Android 6 y 7. Android 13 admite además una capa monocromática. Guía: https://developer.android.com/develop/ui/compose/system/icon_design_adaptive
 
 El icono actual se mantiene hasta que añadas tu diseño.
+
+## Flujo de demo y selector de zona
+
+`StartScreen.kt` cambia el contenido del botón por un indicador circular durante 650 ms. Después, `ExperienceScreen.kt` reproduce el video de transición y revela el selector con un gradiente ascendente. El video compilado está en `res/raw/onboarding_screen_afterclick.mp4`; fue reducido de 11.5 MB a 596 KB (H.264, 720 × 830, sin audio). El archivo original se conserva en `design/source-video/`.
+
+En el selector, la ventana disminuye hasta desaparecer según el desplazamiento. La línea azul avanza con el scroll y revela los hitos de Fundes, Fundación Coppel y Mesas de Diálogo. El botón Seleccionar permanece fijo en la parte inferior.
+
+El SVG fuente del barco se conserva en `design/source-assets/icon_boat.svg`; Android utiliza su versión VectorDrawable en `res/drawable/ic_boat.xml`.
 #   v o - a n d r o i d  
  
