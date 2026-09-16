@@ -1,0 +1,23 @@
+<resources>
+    <string name="app_name">Vital Oceans</string>
+    <string name="eyebrow">TU PRIMER PASO</string>
+    <string name="welcome">Todo empieza\naquí.</string>
+    <string name="intro">Una pequeña idea. Infinitas posibilidades.</string>
+    <string name="counter_title">Prueba tu primera interacción</string>
+    <string name="counter_description">Cada toque es un nuevo comienzo.</string>
+    <string name="increment">Sumar un toque</string>
+    <string name="reset">Empezar de nuevo</string>
+    <string name="footer">Hecha con Kotlin y Jetpack Compose</string>
+    <plurals name="tap_count">
+        <item quantity="one">%d toque</item>
+        <item quantity="other">%d toques</item>
+    </plurals>
+    <string name="start_title">ÁREAS MARINAS\nAL ALCANCE</string>
+    <string name="start_description">Océanos Vitales usa IA para generar reportes que ayuden a la creación de Áreas Marinas Protegidas.</string>
+    <string name="start_demo">Iniciar Demo</string>
+    <string name="start_more">MÁS INFORMACIÓN</string>
+    <string name="start_info_title">Océanos Vitales</string>
+    <string name="start_info_body">Explora una propuesta que utiliza inteligencia artificial para generar reportes que apoyen la creación de Áreas Marinas Protegidas.</string>
+    <string name="start_demo_pending">La experiencia estará disponible próximamente.</string>
+    <string name="start_close">Cerrar</string>
+</resources>
