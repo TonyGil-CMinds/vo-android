@@ -27,8 +27,8 @@ There are no unit or instrumentation tests and no test source sets; `assembleDeb
 
 Single-module (`:app`), single-Activity, no navigation library, no ViewModels, no persistence, no network. State lives in composables and survives activity recreation via `rememberSaveable`.
 
-- [MainActivity.kt](app/src/main/java/com/example/miprimeraapp/MainActivity.kt) — the Activity plus `LoaderScreen`. A `ready: Boolean` in `rememberSaveable` drives a `Crossfade` from the loader to `StartScreen`. `enableEdgeToEdge` is called twice: once in `onCreate` (dark bars over the blue loader) and again from a `LaunchedEffect(ready)` (light bars over the pale start screen) — any new top-level screen with a different background must extend that effect.
-- `LoaderScreen` animates a single `Animatable` 0→1 over `LoaderDurationMillis` (6000 ms). That one fraction derives both the percentage text and which of the six `LoaderImages` is showing plus its zoom-in scale; the previous image stays painted underneath so the next grows over it. The progress is a demo, unrelated to real work. `savedProgress` is mirrored into `rememberSaveable` so rotation resumes rather than restarts.
+- [MainActivity.kt](app/src/main/java/com/example/miprimeraapp/MainActivity.kt) — the Activity and nothing else: it sets light system bars (dark icons, for the pale start screen) and hands straight to `ExperienceFlow`. There is no startup loader. A new top-level screen with a dark background must set its own bar style.
+- The six `loader_*.jpg` in `res/drawable-nodpi/` are leftovers from the removed loader and are no longer referenced.
 - [StartScreen.kt](app/src/main/java/com/example/miprimeraapp/StartScreen.kt) — the onboarding cover. Two `rememberSaveable` booleans feed one shared `AlertDialog`.
 - [ui/theme/Theme.kt](app/src/main/java/com/example/miprimeraapp/ui/theme/Theme.kt) — **all** theme declarations live here: `ThemePalette`, `ThemeTypography`, the `MiPrimeraAppTheme` wrapper, and `AppBackground`. `Color.kt` and `Type.kt` are deliberately empty stubs; the split caused cross-file resolution failures in the terminal/VS Code Kotlin tooling. Do not move declarations back into them.
 

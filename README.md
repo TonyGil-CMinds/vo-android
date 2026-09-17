@@ -18,14 +18,13 @@ Se desarrolla y compila **desde la terminal**, sin Android Studio.
 
 | # | Pantalla | Qué pasa |
 |---|----------|----------|
-| 1 | **Loader** | Seis fotos que crecen mientras avanza un contador. |
-| 2 | **Portada** | Presentación; el botón expande la portada a video a pantalla completa. |
-| 3 | **Zona** | Baja California, con una línea de tiempo que se revela al deslizar. |
-| 4 | **Trazado** | Mapa real: toca para poner vértices, mantén pulsado para moverlos, dos dedos para girar e inclinar. Al cerrar el polígono se calculan superficie, perímetro y centro. |
-| 5 | **Generación** | Fondo azul, orbe de refracción cristalina y cuatro frases mientras "analiza". |
-| 6 | **Nombre** | Título propuesto, editable, regenerable. |
-| 7 | **Reporte** | Resumen, Biodiversidad, Actividades, Propuesta y Agente, con mapas ampliables. |
-| 8 | **Alex** | Chat a pantalla completa, o llamada de voz **acercando el teléfono a la oreja**. |
+| 1 | **Portada** | Presentación; el botón expande la portada a video a pantalla completa. |
+| 2 | **Zona** | Baja California, con una línea de tiempo que se revela al deslizar. |
+| 3 | **Trazado** | Mapa real: toca para poner vértices, mantén pulsado para moverlos, dos dedos para girar e inclinar. Al cerrar el polígono se calculan superficie, perímetro y centro. |
+| 4 | **Generación** | Fondo azul, orbe de refracción cristalina y cuatro frases mientras "analiza". |
+| 5 | **Nombre** | Título propuesto, editable, regenerable. |
+| 6 | **Reporte** | Resumen, Biodiversidad, Actividades, Propuesta y Agente, con mapas ampliables. |
+| 7 | **Alex** | Chat a pantalla completa, o llamada de voz **acercando el teléfono a la oreja**. |
 
 Todos los cambios de pantalla usan transiciones compartidas: el elemento que tocas es el que crece.
 
@@ -86,7 +85,7 @@ Es deliberado: el prototipo cabe en la cabeza de una persona y cada pantalla se 
 Si esto crece a producción, el primer refactor es subir el estado a ViewModels.
 
 ```
-MainActivity            Loader → ExperienceFlow
+MainActivity            arranca la experiencia
 └── ExperienceScreen    portada, video, selector de zona
     └── TraceAreaScreen trazado sobre el mapa y resumen del área
         └── MpaProposalScreen  generación, nombre y contenedor del reporte
@@ -189,6 +188,5 @@ lo fuerzan). Cuida los acentos al editar desde consolas de Windows.
 
 ## Créditos
 
-- Fotos del loader: [Lorem Picsum](https://picsum.photos/) (IDs 1011, 1015, 1016, 1025, 1035, 1043).
 - Mapas: [Mapbox](https://www.mapbox.com/).
 - Tipografías: Bowlby One y Ones.
