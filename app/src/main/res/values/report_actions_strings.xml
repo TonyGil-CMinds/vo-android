@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="report_actions">Acciones del reporte</string>
+    <string name="report_share">Compartir</string>
+    <string name="report_download">Descargar reporte en PDF</string>
+    <string name="report_pdf_saved">Reporte guardado.</string>
+    <string name="report_action_error">No se pudo completar la acción. Inténtalo de nuevo.</string>
+    <string name="report_feedback_title">Envía tus comentarios</string>
+    <string name="report_feedback_hint">Cuéntanos cómo fue tu experiencia. Tu borrador se guarda en este dispositivo.</string>
+    <string name="report_feedback_label">Tus comentarios</string>
+    <string name="report_feedback_save">Guardar comentarios</string>
+    <string name="report_feedback_pending">Comentarios guardados en este dispositivo. Aún no se han enviado.</string>
+    <string name="report_feedback_sent">Gracias. Tus comentarios se han enviado.</string>
+    <string name="report_actions_back">Volver a las acciones</string>
+    <string name="report_export_geometry">Esquema del polígono trazado, sin mapa base. Los datos ambientales son del reporte de ejemplo de Isla Espíritu Santo; no representan un análisis nuevo de esta área.</string>
+</resources>

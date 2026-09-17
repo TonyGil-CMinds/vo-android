@@ -28,6 +28,8 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -54,8 +56,10 @@ private fun mix(start: Float, end: Float, fraction: Float) = start + (end - star
 fun ExperienceFlow() {
     var stage by rememberSaveable { mutableIntStateOf(0) }
     var tracing by rememberSaveable { mutableStateOf(false) }
+    // El rect del botón viaja al trazado: de ahí nace el modal, en vez de aparecer de golpe.
+    var traceOrigin by remember { mutableStateOf(Rect.Zero) }
     if (tracing) {
-        TraceAreaScreen(onBack = { tracing = false })
+        TraceAreaScreen(onBack = { tracing = false }, origin = traceOrigin)
         return
     }
     var startGeneration by remember { mutableIntStateOf(0) }
@@ -124,7 +128,7 @@ fun ExperienceFlow() {
                 drawRect(Brush.verticalGradient(listOf(Color.Transparent, Color.White),
                     startY = edge, endY = edge + feather), blendMode = BlendMode.DstIn)
             }) {
-                ZoneSelectorScreen(interactive = stage == 2, onSelect = { tracing = true })
+                ZoneSelectorScreen(interactive = stage == 2, onSelect = { rect -> traceOrigin = rect; tracing = true })
             }
         }
     }
@@ -185,7 +189,8 @@ private fun cropVideo(view: TextureView, player: MediaPlayer?) {
 }
 
 @Composable
-fun ZoneSelectorScreen(interactive: Boolean = true, onSelect: () -> Unit = {}) {
+fun ZoneSelectorScreen(interactive: Boolean = true, onSelect: (Rect) -> Unit = {}) {
+    var selectBounds by remember { mutableStateOf(Rect.Zero) }
     val scroll = rememberScrollState()
     val density = LocalDensity.current
     val scope = rememberCoroutineScope()
@@ -255,8 +260,9 @@ fun ZoneSelectorScreen(interactive: Boolean = true, onSelect: () -> Unit = {}) {
         Column(Modifier.fillMaxWidth().align(Alignment.BottomCenter)
             .background(Brush.verticalGradient(listOf(Color.Transparent, ZoneIce, ZoneIce)))
             .padding(top = 25.dp, bottom = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Button(onClick = onSelect, enabled = interactive,
-                modifier = Modifier.fillMaxWidth(0.62f).widthIn(max = 300.dp).heightIn(min = 52.dp),
+            Button(onClick = { onSelect(selectBounds) }, enabled = interactive,
+                modifier = Modifier.fillMaxWidth(0.62f).widthIn(max = 300.dp).heightIn(min = 52.dp)
+                    .onGloballyPositioned { selectBounds = it.boundsInRoot() },
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(containerColor = ZoneBlue, contentColor = Color.White,
                     disabledContainerColor = ZoneBlue, disabledContentColor = Color.White)) {

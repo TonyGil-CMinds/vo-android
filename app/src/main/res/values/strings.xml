@@ -33,4 +33,17 @@
     <string name="zone_dialogue_body">Nos acercamos a las comunidades costeras para entender sus necesidades y conocer los retos que enfrentan.</string>
     <string name="zone_selected_title">Baja California</string>
     <string name="zone_selected_body">Esta zona quedó seleccionada para continuar la experiencia.</string>
+    <string name="mpa_step_signals">Cruzando señales</string>
+    <string name="mpa_step_evidence">Conectando evidencia</string>
+    <string name="mpa_step_patterns">Encontrando patrones</string>
+    <string name="mpa_step_report">Construyendo tu reporte</string>
+    <string name="mpa_cover_description">Ilustración de una bahía protegida</string>
+    <string name="mpa_name_eyebrow">Nombra tu propuesta</string>
+    <string name="mpa_name_hint">Título generado con IA puedes editarlo</string>
+    <string name="mpa_name_or">"o "</string>
+    <string name="mpa_name_regenerate">generar uno nuevo</string>
+    <string name="mpa_name_generating">generando un título nuevo</string>
+    <string name="mpa_continue">Continuar</string>
+    <string name="mpa_next_title">Propuesta nombrada</string>
+    <string name="mpa_next_body">El siguiente paso del reporte estará disponible próximamente. Todavía no se ha enviado ni creado una MPA.</string>
 </resources>

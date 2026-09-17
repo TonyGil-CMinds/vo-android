@@ -14,8 +14,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -26,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 private val TraceBlue = Color(0xFF0085FF)
@@ -34,7 +38,7 @@ private val TraceIce = Color(0xFFDBFFFF)
 private val TraceHeading = FontFamily(Font(R.font.bowlby_one_regular))
 
 @Composable
-fun TraceAreaScreen(onBack: () -> Unit, repository: AreaInformationRepository = remember { DemoAreaInformationRepository() }) {
+fun TraceAreaScreen(onBack: () -> Unit, origin: Rect = Rect.Zero, repository: AreaInformationRepository = remember { DemoAreaInformationRepository() }) {
     var serialized by rememberSaveable { mutableStateOf("") }
     val points = remember(serialized) { serialized.split(';').filter { it.isNotBlank() }.map {
         val p = it.split(','); GeoVertex(p[0].toDouble(),p[1].toDouble())
@@ -45,7 +49,7 @@ fun TraceAreaScreen(onBack: () -> Unit, repository: AreaInformationRepository = 
     var expanded by rememberSaveable { mutableStateOf(false) }
     var notice by remember { mutableStateOf<String?>(null) }
     var confirmLeave by remember { mutableStateOf(false) }
-    var showNext by remember { mutableStateOf(false) }
+    var showNext by rememberSaveable { mutableStateOf(false) }
     var ready by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
     var retry by remember { mutableIntStateOf(0) }
@@ -57,12 +61,26 @@ fun TraceAreaScreen(onBack: () -> Unit, repository: AreaInformationRepository = 
         val problem = AreaMath.validationError(points)
         if (problem != null) notice = problem else { complete = true; expanded = false; notice = null }
     }
+    // La llegada y la salida usan el mismo recorrido, para que volver deshaga lo que se vio entrar.
+    val handoff = remember { Animatable(if (origin == Rect.Zero) 1f else 0f) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) { if (handoff.value < 1f) handoff.animateTo(1f, tween(620, easing = FastOutSlowInEasing)) }
+    fun leave() {
+        if (origin == Rect.Zero) return onBack()
+        scope.launch { handoff.animateTo(0f, tween(420, easing = FastOutSlowInEasing)); onBack() }
+    }
     fun back() {
         when { complete -> { complete = false; expanded = false }
             points.isNotEmpty() -> confirmLeave = true
-            else -> onBack() }
+            else -> leave() }
     }
     BackHandler { back() }
+    // Al cerrarse el polígono las cifras suben desde cero; al deformarlo ya no vuelven a contar.
+    val counters = remember { Animatable(0f) }
+    LaunchedEffect(complete) {
+        if (complete) { counters.snapTo(0f); counters.animateTo(1f, tween(1000, easing = FastOutSlowInEasing)) }
+        else counters.snapTo(0f)
+    }
     LaunchedEffect(area) {
         information = null
         if (area != null) {
@@ -75,8 +93,11 @@ fun TraceAreaScreen(onBack: () -> Unit, repository: AreaInformationRepository = 
         val viewport = maxHeight
         val mapHeight by animateDpAsState(if (complete) viewport * 0.55f else viewport, tween(650), label = "Map to summary")
         if (tokenPresent) key(retry) {
-            NativeAreaMap(controller, points, complete, !tutorial && !complete && ready,
+            // La cámara sigue viva con el área cerrada: así se puede deformar e inclinar el plano.
+            NativeAreaMap(controller, points, complete, !tutorial && ready,
                 Modifier.fillMaxWidth().height(mapHeight).then(if (tutorial) Modifier.blur(4.dp) else Modifier),
+                addPoints = !tutorial && !complete && ready,
+                draggableVertices = !tutorial && ready,
                 onTap = { point ->
                     when {
                         controller.isFirst(point) -> finish()
@@ -84,7 +105,14 @@ fun TraceAreaScreen(onBack: () -> Unit, repository: AreaInformationRepository = 
                         points.any { AreaMath.distance(it,point) < 1 } -> notice = "Ese punto está demasiado cerca de otro."
                         else -> { store(points + point); notice = null }
                     }
-                }, onReady = { ready = true; failed = false }, onError = { if (!ready) failed = true })
+                },
+                onVerticesMoved = { moved ->
+                    // Un vértice arrastrado puede cruzar las líneas: se rechaza y el trazado vuelve.
+                    val problem = if (complete) AreaMath.validationError(moved) else null
+                    if (problem != null) { notice = problem; controller.restore(points) }
+                    else { store(moved); notice = null }
+                },
+                onReady = { ready = true; failed = false }, onError = { if (!ready) failed = true })
         }
         Box(Modifier.fillMaxWidth().height(if (complete) 100.dp else 230.dp)
             .align(if (complete) Alignment.TopCenter else Alignment.BottomCenter)
@@ -100,7 +128,7 @@ fun TraceAreaScreen(onBack: () -> Unit, repository: AreaInformationRepository = 
             IconButton(onClick = { controller.zoom(1.0) }, enabled = !tutorial && ready) { Text("+", fontSize = 24.sp, color = TraceInk) }
             IconButton(onClick = { controller.zoom(-1.0) }, enabled = !tutorial && ready) { Text("−", fontSize = 24.sp, color = TraceInk) }
             HorizontalDivider(Modifier.width(28.dp).align(Alignment.CenterHorizontally))
-            IconButton(onClick = { controller.reset() }, enabled = !tutorial && ready) { TraceIcon("center", TraceInk) }
+            IconButton(onClick = { controller.reset() }, enabled = !tutorial && ready) { Icon(painterResource(R.drawable.ic_mylocation), "Centrar mapa", Modifier.size(22.dp), tint = Color.Unspecified) }
         }
         if ((!ready || failed || !tokenPresent) && !tutorial) {
             Surface(Modifier.align(Alignment.Center).padding(32.dp), shape = RoundedCornerShape(20.dp), color = Color.White) {
@@ -122,10 +150,14 @@ fun TraceAreaScreen(onBack: () -> Unit, repository: AreaInformationRepository = 
                 Spacer(Modifier.height(22.dp))
                 Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Calidad de Datos", fontWeight = FontWeight.Bold, color = TraceInk, fontSize = 17.sp, modifier = Modifier.weight(1f))
-                    Text(information?.let { "${it.quality}%" } ?: "…", fontWeight = FontWeight.Bold, color = TraceInk, fontSize = 17.sp)
+                    val shown by animateIntAsState(information?.quality ?: 0, tween(1100, easing = FastOutSlowInEasing), label = "Porcentaje de calidad")
+                    Text(if (information == null) "…" else "$shown%", fontWeight = FontWeight.Bold, color = TraceInk, fontSize = 17.sp)
                     TraceIcon(if (expanded) "up" else "down", TraceInk, Modifier.padding(start = 8.dp))
                 }
-                LinearProgressIndicator(progress = { (information?.quality ?: 0) / 100f }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape), color = TraceBlue, trackColor = Color(0xFFD8DEDE), drawStopIndicator = {})
+                // Arranca en cero y sube cuando llega el dato: la barra cuenta la espera.
+                val quality by animateFloatAsState((information?.quality ?: 0) / 100f,
+                    tween(1100, easing = FastOutSlowInEasing), label = "Calidad de datos")
+                LinearProgressIndicator(progress = { quality }, modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape), color = TraceBlue, trackColor = Color(0xFFD8DEDE), drawStopIndicator = {})
                 Text(if (information?.simulated == true) "Datos de demostración" else "", fontSize = 10.sp, color = TraceInk.copy(alpha = .6f), modifier = Modifier.padding(top = 6.dp))
                 AnimatedVisibility(expanded) {
                     Column(Modifier.padding(top = 10.dp, bottom = 18.dp)) {
@@ -146,8 +178,9 @@ fun TraceAreaScreen(onBack: () -> Unit, repository: AreaInformationRepository = 
                 }
                 AnimatedVisibility(!expanded) {
                     Column(Modifier.padding(top = 12.dp, bottom = 18.dp)) {
-                        Metric("Superficie", String.format(Locale.US,"%.2f km²",area.squareMeters/1_000_000))
-                        Metric("Perímetro", String.format(Locale.US,"%.2f km",area.perimeterMeters/1000))
+                        // Las magnitudes se cuentan hacia arriba; las coordenadas no, contarlas no significaría nada.
+                        Metric("Superficie", String.format(Locale.US,"%.2f km²",area.squareMeters/1_000_000 * counters.value))
+                        Metric("Perímetro", String.format(Locale.US,"%.2f km",area.perimeterMeters/1000 * counters.value))
                         Metric("Ubicación", String.format(Locale.US,"%.5f° N\n%.5f° W",area.center.latitude, -area.center.longitude))
                     }
                 }
@@ -167,27 +200,27 @@ fun TraceAreaScreen(onBack: () -> Unit, repository: AreaInformationRepository = 
                     }
                     if (points.size >= 3) Button(onClick = { finish() }, colors = ButtonDefaults.buttonColors(containerColor = TraceBlue, contentColor = Color.White), modifier = Modifier.height(52.dp), shape = CircleShape) { Text("Ver área"); Spacer(Modifier.width(6.dp)); TraceIcon("arrow", Color.White) }
                     else Surface(shape = CircleShape, color = Color.White) {
-                        Row { IconButton(onClick = { controller.reset() }) { TraceIcon("center", Color.Gray) }
+                        Row { IconButton(onClick = { controller.reset() }) { Icon(painterResource(R.drawable.ic_mylocation), "Centrar mapa", Modifier.size(22.dp), tint = Color.Unspecified) }
                             IconButton(onClick = { tutorial = true }) { TraceIcon("help", Color.Gray) } }
                     }
                 }
             }
             Spacer(Modifier.height(20.dp)); TraceSteps()
         }
+        // Todo lo que hay debajo del modal se revela desde el tono en que termina la pantalla anterior.
+        if (handoff.value < 1f) Box(Modifier.fillMaxSize().background(TraceIce.copy(alpha = 1f - handoff.value)))
         if (tutorial) {
             // Blocks touches on the blurred map, while retaining the map's attribution.
-            Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = .12f)).clickable(enabled = true, onClick = {}))
+            Box(Modifier.fillMaxSize().background(Color.White.copy(alpha = .12f * handoff.value)).clickable(enabled = true, onClick = {}))
             TutorialCard(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(horizontal = 24.dp, vertical = 24.dp),
-                onStart = { tutorial = false })
+                origin = origin, handoff = handoff.value, onStart = { tutorial = false })
         }
     }
     if (confirmLeave) AlertDialog(onDismissRequest = { confirmLeave = false }, title = { Text("¿Salir del trazado?") },
         text = { Text("Se perderán los puntos de esta área.") },
         confirmButton = { TextButton(onClick = onBack) { Text("Salir") } },
         dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text("Seguir trazando") } })
-    if (showNext) AlertDialog(onDismissRequest = { showNext = false }, title = { Text("Área preparada") },
-        text = { Text("El polígono está listo para el siguiente paso de la demo. Todavía no se ha enviado ni creado una MPA.") },
-        confirmButton = { TextButton(onClick = { showNext = false }) { Text("Entendido") } })
+    if (showNext && area != null) MpaProposalFlow(area, onBack = { showNext = false })
 }
 
 @Composable
@@ -215,12 +248,31 @@ private fun TraceSteps() {
 }
 
 @Composable
-private fun TutorialCard(modifier: Modifier, onStart: () -> Unit) {
+private fun TutorialCard(modifier: Modifier, origin: Rect, handoff: Float, onStart: () -> Unit) {
     val controller = remember { AreaMapController() }
     val progress = remember { Animatable(0f) }
     LaunchedEffect(Unit) { while (isActive) { progress.snapTo(0f); progress.animateTo(4f,tween(3400,easing = LinearEasing)); delay(1300) } }
-    Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(30.dp), color = Color.White, shadowElevation = 7.dp) {
-        Column(Modifier.padding(8.dp).verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+    // La caja externa no lleva transformación: su rect medido es el destino real del morph.
+    var bounds by remember { mutableStateOf(Rect.Zero) }
+    val morphing = origin != Rect.Zero && bounds.width > 0f && handoff < 1f
+    val content = ((handoff - 0.35f) / 0.65f).coerceIn(0f, 1f)
+    Box(modifier.fillMaxWidth().onGloballyPositioned { bounds = it.boundsInRoot() }) {
+    Surface(
+        Modifier.fillMaxWidth().graphicsLayer {
+            if (!morphing) return@graphicsLayer
+            val toWidth = origin.width / bounds.width
+            val toHeight = origin.height / bounds.height
+            scaleX = toWidth + (1f - toWidth) * handoff
+            scaleY = toHeight + (1f - toHeight) * handoff
+            translationX = (origin.center.x - bounds.center.x) * (1f - handoff)
+            translationY = (origin.center.y - bounds.center.y) * (1f - handoff)
+        },
+        shape = RoundedCornerShape(30.dp),
+        // Sale del azul del botón y se vuelve la tarjeta blanca a mitad del recorrido.
+        color = lerp(TraceBlue, Color.White, (handoff * 2f).coerceAtMost(1f)),
+        shadowElevation = 7.dp,
+    ) {
+        Column(Modifier.padding(8.dp).verticalScroll(rememberScrollState()).alpha(content), horizontalAlignment = Alignment.CenterHorizontally) {
             Box(Modifier.fillMaxWidth().height(166.dp).clip(RoundedCornerShape(24.dp)).background(Color(0xFF80BEDB))) {
                 if (stringResource(R.string.mapbox_access_token).startsWith("pk.")) {
                     NativeAreaMap(controller, emptyList(), false, false, Modifier.fillMaxSize(), miniature = true)
@@ -244,11 +296,12 @@ private fun TutorialCard(modifier: Modifier, onStart: () -> Unit) {
             }
             Spacer(Modifier.height(24.dp))
             Row(verticalAlignment = Alignment.CenterVertically) { TraceIcon("polygon",Color.Black); Spacer(Modifier.width(6.dp)); Text("Trazar Área",fontSize=16.sp,fontWeight=FontWeight.Bold) }
-            Text("Toca la pantalla para crear puntos y delimitar tu área. Con 3 o más puntos, toca el primero o pulsa «Ver área». Puedes deshacer el último punto.",
+            Text("Toca la pantalla para crear puntos y delimitar tu área. Mantén pulsado un punto para moverlo, y usa dos dedos para girar o inclinar el mapa. Con 3 o más puntos, toca el primero o pulsa «Ver área».",
                 Modifier.padding(horizontal=24.dp,vertical=14.dp),fontSize=14.sp,lineHeight=20.sp,color=Color.Gray,textAlign=TextAlign.Center)
             TraceButton("Empezar a trazar",onStart)
             Spacer(Modifier.height(20.dp)); TraceSteps(); Spacer(Modifier.height(18.dp))
         }
+    }
     }
 }
 

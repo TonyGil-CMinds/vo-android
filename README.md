@@ -178,3 +178,21 @@ En el selector, la ventana disminuye hasta desaparecer según el desplazamiento.
 El SVG fuente del barco se conserva en `design/source-assets/icon_boat.svg`; Android utiliza su versión VectorDrawable en `res/drawable/ic_boat.xml`.
 #   v o - a n d r o i d  
  
+
+
+## Pantalla de reporte
+
+Al continuar desde la propuesta de nombre, la portada se recoge y aparece el reporte con cinco secciones: Resumen, Biodiversidad, Actividades, Propuesta y Agente. La línea lateral sigue la lectura; la barra inferior oculta sus iconos al avanzar y los recupera al retroceder. Cada pestaña conserva su posición de lectura durante la sesión y al recrear la actividad.
+
+`ReportScreen.kt` contiene el lector y los mapas ampliables con filtros y puntos seleccionables. `ReportGeometry.kt` genera puntos ilustrativos dentro del polígono y formatea las coordenadas. Los mapas y las medidas usan el trazado del usuario; el contenido ambiental procede del reporte de ejemplo de Isla Espíritu Santo (16 de abril de 2026), sin atribuir esas cifras a un área nueva. Agente ofrece preguntas y respuestas locales preparadas, sin un servicio de IA.
+
+Los SVG de navegación y ubicación se conservan en `design/source-assets/`. Sus equivalentes VectorDrawable están en `res/drawable/ic_navbar_*.xml` e `ic_mylocation.xml`; Android no permite compilar los SVG originales dentro de `res/drawable-nodpi/`.
+
+Validación: `./gradlew.bat assembleDebug lintDebug testDebugUnitTest`. Las pruebas incluyen geometría de áreas, hemisferios y contención de puntos en polígonos cóncavos.
+
+
+### Acciones del reporte y comentarios
+
+El botón de tres puntos abre el modal de acciones. La descarga usa el selector de archivos de Android y genera un PDF paginado con el contenido del lector, medidas y un esquema del polígono. Compartir abre el selector nativo con un PDF temporal mediante un FileProvider limitado a `cache/reports/`.
+
+`ExperienceFeedbackRepository.submit` es el punto de integración del futuro backend. La implementación `PendingExperienceFeedbackRepository` conserva los comentarios en `SharedPreferences` (`experience_feedback`, clave `pending`) con ID, título, texto y fecha. No realiza solicitudes de red ni marca los comentarios como enviados. Los IDs se mantienen para permitir entregas idempotentes; el futuro cliente deberá reenviar la cola y retirar cada entrada sólo tras confirmación del servidor. El borrador se conserva por separado en `draft`.
