@@ -23,6 +23,23 @@ android {
         versionCode = 1
         versionName = "1.0"
         resValue("string", "mapbox_access_token", mapboxToken)
+        // Las .so de Mapbox son el 83 % del APK y se empaquetan sin comprimir.
+        // x86/x86_64 sólo sirven para emuladores: -Pabis=all las incluye cuando hacen falta.
+        ndk {
+            abiFilters += when (providers.gradleProperty("abis").orNull) {
+                "all" -> listOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+                "arm64" -> listOf("arm64-v8a")
+                else -> listOf("arm64-v8a", "armeabi-v7a")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
     }
 
     buildFeatures { compose = true }
