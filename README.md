@@ -1,198 +1,194 @@
-# Mi primera app
+# Vital Oceans — demo Android
 
-App Android nativa en Kotlin y Jetpack Compose con Material 3. Se desarrolla y compila desde la terminal, sin Android Studio.
+Prototipo nativo de **Océanos Vitales**: una app que acompaña a comunidades costeras a proponer
+**Áreas Marinas Protegidas (MPA)**. El usuario traza un polígono sobre el mar, la app le propone un
+nombre, genera un reporte por secciones y le deja conversar con *Alex*, un agente que conoce ese reporte.
 
-## Herramientas
+> **Es una demo.** No hay backend, ni servicio de IA, ni MPA reales. Las cifras del polígono son de
+> verdad (se calculan sobre el trazado); el contenido ambiental y las respuestas de Alex están
+> preparados. Cada pieza ficticia está detrás de una interfaz lista para conectar — ver
+> [Puntos de integración](#puntos-de-integración).
 
-- JDK 17 (con `java` en PATH o `JAVA_HOME` apuntando al JDK).
-- Android SDK Command-line Tools y Platform Tools.
-- Plataforma `platforms;android-36` y `build-tools;35.0.0`.
-- Gradle 8.13 mediante el Wrapper incluido; no necesitas instalar Gradle globalmente.
-- Android Gradle Plugin 8.13.2, Kotlin y plugin Compose 2.2.20, Compose BOM 2025.08.01.
-- Android mÃ­nimo: 6.0 (API 23). Compile/target SDK: 36.
+Kotlin · Jetpack Compose · Material 3 · Mapbox Maps SDK · Android 6+ (API 23)
+Se desarrolla y compila **desde la terminal**, sin Android Studio.
 
-## ConfiguraciÃ³n en otra computadora
+---
 
-Instala JDK 17 y las [herramientas de lÃ­nea de comandos del SDK](https://developer.android.com/tools).
-Agrega `cmdline-tools/latest/bin` y `platform-tools` del SDK a PATH.
+## El recorrido
 
-```powershell
+| # | Pantalla | Qué pasa |
+|---|----------|----------|
+| 1 | **Loader** | Seis fotos que crecen mientras avanza un contador. |
+| 2 | **Portada** | Presentación; el botón expande la portada a video a pantalla completa. |
+| 3 | **Zona** | Baja California, con una línea de tiempo que se revela al deslizar. |
+| 4 | **Trazado** | Mapa real: toca para poner vértices, mantén pulsado para moverlos, dos dedos para girar e inclinar. Al cerrar el polígono se calculan superficie, perímetro y centro. |
+| 5 | **Generación** | Fondo azul, orbe de refracción cristalina y cuatro frases mientras "analiza". |
+| 6 | **Nombre** | Título propuesto, editable, regenerable. |
+| 7 | **Reporte** | Resumen, Biodiversidad, Actividades, Propuesta y Agente, con mapas ampliables. |
+| 8 | **Alex** | Chat a pantalla completa, o llamada de voz **acercando el teléfono a la oreja**. |
+
+Todos los cambios de pantalla usan transiciones compartidas: el elemento que tocas es el que crece.
+
+---
+
+## Puesta en marcha
+
+### Requisitos
+
+- **JDK 17** (`java` en PATH o `JAVA_HOME` apuntando al JDK).
+- **Android SDK Command-line Tools** y **Platform Tools** en PATH
+  (`cmdline-tools/latest/bin` y `platform-tools`).
+- Gradle **8.13** lo aporta el Wrapper incluido; no hace falta instalarlo.
+
+```bash
 sdkmanager --licenses
 sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0"
 ```
 
-Crea `local.properties` en la raÃ­z con la ruta de tu SDK, usando barras `/`:
+### Configuración local
+
+Crea `local.properties` en la raíz (está en `.gitignore`):
 
 ```properties
 sdk.dir=C\:/Users/TU_USUARIO/AppData/Local/android/sdk
+MAPBOX_ACCESS_TOKEN=pk.tu_token_publico
 ```
 
-Este archivo se ignora en Git. Alternativamente configura `ANDROID_HOME`.
+El token de Mapbox también puede venir de la variable de entorno `MAPBOX_ACCESS_TOKEN`.
+Usa un token **público** `pk.*`: acaba dentro del APK, así que nunca pongas uno secreto `sk.*`.
+Sin token la app arranca igual, pero los mapas muestran "Falta configurar Mapbox".
 
-## Compilar y revisar
+### Compilar, validar e instalar
 
-Desde la raÃ­z del proyecto en PowerShell:
-
-```powershell
-.\gradlew.bat assembleDebug
-.\gradlew.bat lintDebug
-```
-
-La primera compilaciÃ³n descarga Gradle y las dependencias. Requiere Internet.
-APK generado: `app/build/outputs/apk/debug/app-debug.apk`.
-Informe de lint: `app/build/reports/lint-results-debug.html`.
-En Linux/macOS usa `chmod +x gradlew` y `./gradlew assembleDebug`.
-
-## Instalar y abrir en un telÃ©fono
-
-Activa Opciones de desarrollador y DepuraciÃ³n USB, conecta el telÃ©fono y autoriza la computadora.
-
-```powershell
-adb devices
-.\gradlew.bat installDebug
+```bash
+./gradlew assembleDebug                                   # APK de depuración
+./gradlew assembleDebug lintDebug testDebugUnitTest       # validación completa
+./gradlew installDebug                                    # instalar en el dispositivo conectado
 adb shell am start -n com.example.miprimeraapp/.MainActivity
 ```
 
-Si hay varios dispositivos, instala sobre uno especÃ­fico:
+En Windows usa `.\gradlew.bat`; en Linux/macOS, `chmod +x gradlew` primero.
+El APK queda en `app/build/outputs/apk/debug/app-debug.apk` y el informe de lint en
+`app/build/reports/lint-results-debug.html`.
 
-```powershell
-adb -s SERIAL install -r app/build/outputs/apk/debug/app-debug.apk
-adb -s SERIAL shell am start -n com.example.miprimeraapp/.MainActivity
+> El APK pesa unos **100 MB** porque Mapbox incluye binarios nativos de las cuatro ABI.
+> Para reducirlo a ~30 MB en un dispositivo concreto: `ndk { abiFilters += "arm64-v8a" }`.
+
+---
+
+## Arquitectura
+
+Un solo módulo (`:app`), una sola `Activity`, sin librería de navegación, sin ViewModel,
+sin persistencia y sin red. El estado vive en los composables y sobrevive a la recreación
+de la actividad con `rememberSaveable`; el flujo avanza por banderas booleanas anidadas.
+
+Es deliberado: el prototipo cabe en la cabeza de una persona y cada pantalla se lee de arriba abajo.
+Si esto crece a producción, el primer refactor es subir el estado a ViewModels.
+
+```
+MainActivity            Loader → ExperienceFlow
+└── ExperienceScreen    portada, video, selector de zona
+    └── TraceAreaScreen trazado sobre el mapa y resumen del área
+        └── MpaProposalScreen  generación, nombre y contenedor del reporte
+            ├── ReportScreen   lector por secciones, navbar y mapas
+            ├── ReportActions  PDF, compartir y comentarios
+            └── AlexScreens    chat y llamada (pantalla completa)
 ```
 
-## Estructura
+| Archivo | Responsabilidad |
+|---------|-----------------|
+| `AreaGeometry.kt` | Matemática geodésica: área por exceso esférico, perímetro haversine, validación de auto-intersección, export a GeoJSON. |
+| `AreaMap.kt` | Controlador de Mapbox: anotaciones, animación por frames de puntos y líneas, arrastre de vértices, encuadre. |
+| `ReportGeometry.kt` | Puntos ilustrativos dentro del polígono y formato de coordenadas. |
+| `FluidOrb.kt` | Orbe de refracción cristalina: shader AGSL en Android 13+, respaldo pintado por debajo. |
+| `AlexAgent.kt` | Contexto y cerebro del agente, y el sensor de proximidad. |
+| `ui/theme/Theme.kt` | **Todas** las declaraciones del tema. `Color.kt` y `Type.kt` son stubs vacíos a propósito. |
 
-- `app/src/main/java/com/example/miprimeraapp/MainActivity.kt`: pantalla Compose y contador animado; conserva el estado durante recreaciÃ³n de la actividad.
-- `app/src/main/java/com/example/miprimeraapp/ui/theme/Theme.kt`: colores claros y oscuros segÃºn el sistema.
-- `app/src/main/res/values/strings.xml`: textos en espaÃ±ol.
-- `app/src/main/AndroidManifest.xml`: aplicaciÃ³n y actividad de entrada.
-- `app/build.gradle.kts`: SDK, identificador y dependencias.
+### Detalles que conviene conocer antes de tocar el código
 
-La pantalla limita el ancho en tablets, permite desplazamiento en pantallas pequeÃ±as y respeta las barras del sistema. El contador es una demostraciÃ³n; no es almacenamiento permanente.
+- **El tema vive entero en `Theme.kt`.** Separarlo en `Color.kt` / `Type.kt` rompía la resolución
+  entre archivos de la extensión Kotlin de VS Code. No devuelvas las declaraciones a esos archivos.
+- **Esquema de color claro siempre.** Es un `lightColorScheme` poblado a mano, sin variante oscura
+  ni color dinámico: el modo oscuro del sistema no cambia la app.
+- **Las tipografías se cargan por pantalla.** El tema usa `SansSerif`; Bowlby One y Ones se declaran
+  localmente en cada archivo que las necesita. `FontVariation` requiere API 26, con respaldo a
+  `SansSerif` por debajo.
+- **Las animaciones del mapa son imperativas.** Las anotaciones de Mapbox no se animan desde Compose,
+  así que `AreaMapController` corre su propio bucle con `postOnAnimation`, que arranca y se detiene solo.
+- **Durante el arrastre de un vértice no se notifica a Compose.** Recomponer por frame rompería el
+  gesto: el controlador mantiene la geometría y sólo avisa al soltar.
+- **Todo el texto va por `strings.xml`** y los comentarios del código están en español.
 
-El APK debug usa la firma de desarrollo. Para publicar debes configurar tu propia firma release y cambiar `com.example.miprimeraapp` por un identificador propio.
+---
 
-Compatibilidad de herramientas: [documentaciÃ³n oficial de AGP 8.13](https://developer.android.com/build/releases/agp-8-13-0-release-notes).
+## Puntos de integración
 
-## Fuentes personalizadas
+Lo ficticio está aislado detrás de interfaces. Sustituir la implementación de demo no cambia la UI.
 
-`ui/theme/Type.kt` define `AppTypography`, conectado en `Theme.kt`:
+| Interfaz | Implementación de demo | Qué haría la real |
+|----------|------------------------|-------------------|
+| `AreaInformationRepository` | `DemoAreaInformationRepository` | Enviar `area.toGeoJson()` a un servicio y devolver calidad de datos por fuente. |
+| `MpaNameGenerator` | `DemoMpaNameGenerator` | Proponer un nombre analizando el polígono, en vez de combinar listas al azar. |
+| `AlexBrain` | `ScriptedAlexBrain` | Conversar con un modelo, pasándole `AlexContext` como contexto. |
+| `ExperienceFeedbackRepository` | `PendingExperienceFeedbackRepository` | Enviar la cola de comentarios y retirar cada entrada sólo tras confirmación. |
 
-- `display*` y `headline*`: Bowlby One Regular, sin negrita artificial.
-- `title*`, `body*` y `label*`: Ones, con pesos 100..900 del archivo variable.
-- En Android 6 y 7 se usa SansSerif para Ones; las variaciones requieren Android 8+.
+**Cambio pendiente en el modelo:** `SourceQuality.logo` es un `Int` de `R.drawable`. Un servidor no
+puede enviar un ID de recurso de Android; habrá que cambiarlo por un identificador serializable
+(o una URL, con una librería de carga de imágenes).
 
-Usa los estilos del tema para heredar las fuentes automÃ¡ticamente:
+Los comentarios se guardan mientras tanto en `SharedPreferences` (`experience_feedback`), con ID
+estable para permitir entregas idempotentes. Nunca salen del dispositivo.
 
-```kotlin
-Text("Bienvenido", style = MaterialTheme.typography.displaySmall)
-Text("DescripciÃ³n", style = MaterialTheme.typography.bodyLarge)
-Text("Continuar", style = MaterialTheme.typography.labelLarge)
-```
+---
 
-## ImÃ¡genes e iconos sin Android Studio
+## Recursos y diseño
 
-Usa nombres en minÃºsculas, nÃºmeros y guiones bajos: `foto_perfil.webp`, `ic_favorito.xml`.
+- **Imágenes de mapa de bits** → `res/drawable-nodpi/`, para que Android no las reescale por densidad;
+  el tamaño se controla en Compose.
+- **Vectores** → `res/drawable/`, como VectorDrawable XML. `painterResource` **no lee `.svg`**:
+  hay que convertirlos, no renombrarlos.
+- **Los SVG originales** se conservan en `design/source-assets/`, fuera de `res/`.
+- **Nombres de recurso** en minúsculas, dígitos y guiones bajos.
+- El video de transición está comprimido a 596 KB (H.264, 720 × 830, sin audio); el original
+  está en `design/source-video/`.
+- El icono actual es un PNG de 512 × 512, no un icono adaptativo.
 
-- PNG, JPG y WebP: `app/src/main/res/drawable-nodpi/` para conservar sus pÃ­xeles sin escalado automÃ¡tico por densidad. Controla su tamaÃ±o en Compose. Para recursos con variantes por densidad utiliza `drawable-mdpi`, `drawable-hdpi`, etc.
-- Vectores Android: `app/src/main/res/drawable/`, en formato VectorDrawable XML.
-- SVG originales: puedes conservarlos en una carpeta `design/svg/` en la raÃ­z. No coloques archivos `.svg` directamente en `res/drawable`: `painterResource` no los interpreta.
+Codificación: el proyecto es **UTF-8** en todas partes (`.vscode/settings.json` y `gradle.properties`
+lo fuerzan). Cuida los acentos al editar desde consolas de Windows.
 
-Dentro de un composable, despuÃ©s de aÃ±adir `foto_perfil.webp`:
+---
 
-```kotlin
-Image(
-    painter = painterResource(R.drawable.foto_perfil),
-    contentDescription = "Foto de perfil",
-    modifier = Modifier.size(96.dp),
-    contentScale = ContentScale.Crop,
-)
-```
+## Permisos y sensores
 
-Imports: `androidx.compose.foundation.Image`, `androidx.compose.ui.res.painterResource`,
-`androidx.compose.ui.Modifier`, `androidx.compose.foundation.layout.size`,
-`androidx.compose.ui.layout.ContentScale`, `androidx.compose.ui.unit.dp` y el `R` de tu app.
-Usa `contentDescription = null` si la imagen es puramente decorativa.
+- `INTERNET` — único permiso declarado, para los mosaicos de Mapbox.
+- **Sensor de proximidad** (`TYPE_PROXIMITY`) — no requiere permiso. Acercar el teléfono a la oreja
+  con el reporte abierto inicia la llamada con Alex. Es binario en casi todos los equipos
+  (cerca/lejos, no distancia continua), así que sólo se usa la transición lejos → cerca.
+- Compartir el PDF usa un `FileProvider` limitado a `cache/reports/`.
 
-### SVG a VectorDrawable
+---
 
-Convierte el SVG a VectorDrawable XML; cambiar la extensiÃ³n no lo convierte.
-Para un SVG sencillo basado en paths, el `viewBox` define `viewportWidth`/`viewportHeight`,
-el atributo `d` pasa a `android:pathData`, y `fill` a `android:fillColor`.
-Por ejemplo, guarda este vector como `app/src/main/res/drawable/ic_mas.xml`:
+## Limitaciones conocidas
 
-```xml
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp"
-    android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#000000"
-        android:pathData="M11,4h2v7h7v2h-7v7h-2v-7h-7v-2h7z" />
-</vector>
-```
+- Las medidas del polígono son aproximaciones esféricas: **no son medidas catastrales**.
+- El contenido ambiental procede del reporte de ejemplo de Isla Espíritu Santo (16/04/2026).
+  No se atribuye a ninguna zona nueva que tú traces.
+- Los porcentajes de calidad y los puntos de colores en los mapas son ilustrativos. Los logos de
+  las fuentes no implican consultas a sus APIs.
+- Alex responde por palabras clave sobre un guion; sólo las cifras de tu polígono son reales.
+- El "escuchar" de la llamada no usa el micrófono: la envolvente del orbe es sintética.
+- El APK de depuración usa la firma de desarrollo. Para publicar hay que configurar firma release y
+  cambiar `com.example.miprimeraapp` por un identificador propio.
 
-```kotlin
-Icon(
-    painter = painterResource(R.drawable.ic_mas),
-    contentDescription = "AÃ±adir",
-    tint = MaterialTheme.colorScheme.primary,
-)
-```
+---
 
-`Icon` es de `androidx.compose.material3.Icon`. Para logos multicolor usa `Image`,
-o `Icon(tint = Color.Unspecified, ...)`, para conservar los colores.
-SVG con filtros, mÃ¡scaras o efectos complejos requieren revisar la conversiÃ³n;
-puedes exportarlos a PNG/WebP desde tu herramienta de diseÃ±o si no necesitas escalarlos como vectores.
-Para cargar archivos SVG originales en ejecuciÃ³n se necesita una biblioteca con decodificador SVG,
-como Coil con su mÃ³dulo SVG; este proyecto no aÃ±ade esa dependencia.
+## Documentación adicional
 
-Referencias: https://developer.android.com/develop/ui/compose/resources
-https://developer.android.com/develop/ui/compose/text/fonts
+- [`design/MAPBOX.md`](design/MAPBOX.md) — estilo, cámara, interacción del trazado y conexión futura.
+- [`CLAUDE.md`](CLAUDE.md) — notas para asistentes de código que trabajen en el repo.
 
+## Créditos
 
-## Configuración centralizada del tema
-
-La paleta (ThemePalette) y la tipografía (ThemeTypography) están en ui/theme/Theme.kt. Color.kt y Type.kt quedan como archivos informativos sin declaraciones. Esta organización evita las referencias entre archivos que la extensión Kotlin no estaba resolviendo. Actualmente las familias usan SansSerif, conservando la configuración que había antes de esta corrección.
-
-## Loader e icono personalizado
-
-El loader está en MainActivity.kt. LoaderDurationMillis controla la duración (6000 ms). LoaderImages contiene seis fotos de demostración incluidas localmente en res/drawable-nodpi, loader_1.jpg a loader_6.jpg. Sustituye esos archivos manteniendo los nombres para usar tus fotos. Procedencia: Lorem Picsum, IDs 1011, 1015, 1016, 1025, 1035 y 1043 (https://picsum.photos/).
-
-El contador simula progreso; no mide descargas. Termina en 100 y permanece en pantalla. Conserva el progreso al recrearse la actividad. Para reiniciarlo, cierra la app completamente y vuelve a abrirla.
-
-Para probar tu icono sin Android Studio:
-1. Exporta tu diseño a PNG cuadrado de 512 x 512, con margen alrededor del símbolo.
-2. Guárdalo como app/src/main/res/drawable-nodpi/mi_icono.png.
-3. En AndroidManifest.xml cambia android:icon="@drawable/ic_launcher" por android:icon="@drawable/mi_icono".
-4. Ejecuta .\gradlew.bat installDebug para actualizar la app.
-
-Para un icono adaptativo final, prepara símbolo transparente y fondo por separado: lienzo de 108 x 108 dp, símbolo importante dentro de la zona segura central de 66 x 66 dp, sin esquinas redondeadas incorporadas. Un SVG debe convertirse a VectorDrawable. Conserva una versión clásica para Android 6 y 7. Android 13 admite además una capa monocromática. Guía: https://developer.android.com/develop/ui/compose/system/icon_design_adaptive
-
-El icono actual se mantiene hasta que añadas tu diseño.
-
-## Flujo de demo y selector de zona
-
-`StartScreen.kt` cambia el contenido del botón por un indicador circular durante 650 ms. Después, `ExperienceScreen.kt` reproduce el video de transición y revela el selector con un gradiente ascendente. El video compilado está en `res/raw/onboarding_screen_afterclick.mp4`; fue reducido de 11.5 MB a 596 KB (H.264, 720 × 830, sin audio). El archivo original se conserva en `design/source-video/`.
-
-En el selector, la ventana disminuye hasta desaparecer según el desplazamiento. La línea azul avanza con el scroll y revela los hitos de Fundes, Fundación Coppel y Mesas de Diálogo. El botón Seleccionar permanece fijo en la parte inferior.
-
-El SVG fuente del barco se conserva en `design/source-assets/icon_boat.svg`; Android utiliza su versión VectorDrawable en `res/drawable/ic_boat.xml`.
-#   v o - a n d r o i d  
- 
-
-
-## Pantalla de reporte
-
-Al continuar desde la propuesta de nombre, la portada se recoge y aparece el reporte con cinco secciones: Resumen, Biodiversidad, Actividades, Propuesta y Agente. La línea lateral sigue la lectura; la barra inferior oculta sus iconos al avanzar y los recupera al retroceder. Cada pestaña conserva su posición de lectura durante la sesión y al recrear la actividad.
-
-`ReportScreen.kt` contiene el lector y los mapas ampliables con filtros y puntos seleccionables. `ReportGeometry.kt` genera puntos ilustrativos dentro del polígono y formatea las coordenadas. Los mapas y las medidas usan el trazado del usuario; el contenido ambiental procede del reporte de ejemplo de Isla Espíritu Santo (16 de abril de 2026), sin atribuir esas cifras a un área nueva. Agente ofrece preguntas y respuestas locales preparadas, sin un servicio de IA.
-
-Los SVG de navegación y ubicación se conservan en `design/source-assets/`. Sus equivalentes VectorDrawable están en `res/drawable/ic_navbar_*.xml` e `ic_mylocation.xml`; Android no permite compilar los SVG originales dentro de `res/drawable-nodpi/`.
-
-Validación: `./gradlew.bat assembleDebug lintDebug testDebugUnitTest`. Las pruebas incluyen geometría de áreas, hemisferios y contención de puntos en polígonos cóncavos.
-
-
-### Acciones del reporte y comentarios
-
-El botón de tres puntos abre el modal de acciones. La descarga usa el selector de archivos de Android y genera un PDF paginado con el contenido del lector, medidas y un esquema del polígono. Compartir abre el selector nativo con un PDF temporal mediante un FileProvider limitado a `cache/reports/`.
-
-`ExperienceFeedbackRepository.submit` es el punto de integración del futuro backend. La implementación `PendingExperienceFeedbackRepository` conserva los comentarios en `SharedPreferences` (`experience_feedback`, clave `pending`) con ID, título, texto y fecha. No realiza solicitudes de red ni marca los comentarios como enviados. Los IDs se mantienen para permitir entregas idempotentes; el futuro cliente deberá reenviar la cola y retirar cada entrada sólo tras confirmación del servidor. El borrador se conserva por separado en `draft`.
+- Fotos del loader: [Lorem Picsum](https://picsum.photos/) (IDs 1011, 1015, 1016, 1025, 1035, 1043).
+- Mapas: [Mapbox](https://www.mapbox.com/).
+- Tipografías: Bowlby One y Ones.
